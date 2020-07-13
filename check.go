@@ -17,7 +17,10 @@ type Formatter interface {
 	Errorf(format string, args ...interface{})
 }
 
+type LogFunc func(format string, args ...interface{})
+
 const errorMessage = "%s: Expected: %v. Actual: %v"
+const errorMessageDiff = "%s: Expected different than: %v. Actual: %v"
 
 // Check validates so that expected and actual are equal.
 // If they're not, an error will be logged and the test
@@ -26,13 +29,31 @@ func Check(t Formatter, expected, actual interface{}) {
 	performValidation(expected, actual, t.Errorf)
 }
 
+// CheckNotEqual validates so that notexpected and actual
+// are different.
+func CheckNotEqual(t Formatter, notexpected, actual interface{}) {
+	performDifferenceValidation(notexpected, actual, t.Errorf)
+}
+
 // Assert validates so that expected and actual are equal.
 // If they're not, an error will be logged and the test stopped.
 func Assert(t Formatter, expected, actual interface{}) {
 	performValidation(expected, actual, t.Fatalf)
 }
 
-func performValidation(expected, actual interface{}, log func(format string, args ...interface{})) {
+// AssertNotEqual validates so that notexpected and actual are
+// different.
+func AssertNotEqual(t Formatter, notexpected, actual interface{}) {
+	performDifferenceValidation(notexpected, actual, t.Fatalf)
+}
+
+func performDifferenceValidation(expected, actual interface{}, log LogFunc) {
+	if reflect.DeepEqual(expected, actual) {
+		log(errorMessageDiff, getLineInfo(), expected, actual)
+	}
+}
+
+func performValidation(expected, actual interface{}, log LogFunc) {
 	if !reflect.DeepEqual(expected, actual) {
 		log(errorMessage, getLineInfo(), expected, actual)
 	}
